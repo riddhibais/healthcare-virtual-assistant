@@ -1,85 +1,188 @@
+
 import os
-from langchain_community.document_loaders import PyMuPDFLoader
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.prompts import ChatPromptTemplate
+import re
+import importlib
+from pathlib import Path
+
 from dotenv import load_dotenv
+from langchain_core.prompts import ChatPromptTemplate
+
+from backend.medical_rag.retriever import search_knowledge
 
 load_dotenv()
 
+DISCLAIMER = (
+    "\n\nDisclaimer: I am an AI, not a doctor. This explanation is "
+    "for informational purposes only. Consult a qualified healthcare "
+    "professional before making medical decisions."
+)
+
+
 class ReportExplainer:
     def __init__(self):
-        api_key = os.getenv("GOOGLE_API_KEY")
-        self.llm = ChatGoogleGenerativeAI(
-            temperature=0.0,
-            model="gemini-1.5-flash",
-            google_api_key=api_key,
-            max_tokens=4096
-        )
-        
-        system_prompt = (
-            "You are a helpful and highly empathetic medical assistant. "
-            "A user has provided a medical report text. "
-            "Your task is to summarize the report in EXTREMELY SIMPLE language for a layman with no medical background. "
-            "You MUST format your response exactly like this:\n\n"
-            "### 📝 Simple Summary & Risks\n"
-            "(Write a few lines explaining exactly WHAT the disease or problem is, WHY it happened, and the potential RISKS if ignored. Use simple analogies if needed. Talk like a caring friend.)\n\n"
-            "### ⚠️ Abnormal Findings\n"
-            "(List the abnormal values in a simple table or bullet points, explaining what each means simply.)\n\n"
-            "ALWAYS include this disclaimer at the end: '*Disclaimer: I am an AI, not a doctor. Please consult a qualified healthcare professional before making any medical decisions based on this report.*'"
-        )
-        
-        self.prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", "Here is the medical report text:\n\n{report_text}"),
-        ])
-        
-        self.chain = self.prompt | self.llm
+        self.chain = None
 
-    def explain_pdf(self, pdf_path: str):
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            return
+
         try:
-            loader = PyMuPDFLoader(pdf_path)
-            documents = loader.load()
-            report_text = "\n".join([doc.page_content for doc in documents])
-            
-            # If standard extraction fails (likely a scanned PDF), fallback to OCR
-            if not report_text.strip():
-                try:
-                    import fitz
-                    import pytesseract
-                    from PIL import Image
-                    
-                    doc = fitz.open(pdf_path)
-                    ocr_text = ""
-                    for page in doc:
-                        # Render page to an image
-                        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2)) # 2x zoom for better OCR quality
-                        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-                        # Run OCR on the image
-                        ocr_text += pytesseract.image_to_string(img)
-                    
-                    report_text = ocr_text
-                    
-                    if not report_text.strip():
-                        return "⚠️ **OCR Failed.** Could not read the scanned document. Please ensure the image is clear."
-                except ImportError:
-                    return "⚠️ **OCR Dependencies Missing.** Please run `pip install pytesseract Pillow`."
-                except Exception as e:
-                    return f"⚠️ **OCR Error:** You need to install the **Tesseract OCR** software on your Windows PC for this to work.\n\n1. Download from: https://github.com/UB-Mannheim/tesseract/wiki\n2. Install it.\n3. Restart your terminal.\n\n*Technical detail: {str(e)}*"
-            
-            response = self.chain.invoke({"report_text": report_text})
-            clean_text = response.content
-            
-            # Robustly remove <think> tags even if they are large
-            if "</think>" in clean_text:
-                clean_text = clean_text.split("</think>")[-1].strip()
-            elif "<think>" in clean_text:
-                # Means it hit token limit before finishing thoughts
-                return "⚠️ The AI's thought process was too long and it ran out of memory before giving the final answer. Please try again with a shorter report."
-            
-            # Fallback regex just in case there are multiple tags
-            import re
-            clean_text = re.sub(r'<think>.*?</think>', '', clean_text, flags=re.DOTALL).strip()
-            
-            return clean_text
-        except Exception as e:
-            return f"Error processing report: {str(e)}"
+            genai_module = importlib.import_module("langchain_google_genai")
+            ChatGoogleGenerativeAI = genai_module.ChatGoogleGenerativeAI
+
+            llm = ChatGoogleGenerativeAI(
+                temperature=0.0,
+                model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+                google_api_key=api_key,
+                max_tokens=4096,
+            )
+
+            prompt = ChatPromptTemplate.from_messages([
+                (
+                    "system",
+                    """
+You explain medical reports in simple language.
+
+Use these headings:
+### 📝 Simple Summary & Risks
+### ⚠️ Abnormal Findings
+
+Rules:
+- Do not diagnose the patient.
+- Do not invent causes, abnormal values, or reference ranges.
+- Explain only what the report and supplied approved references support.
+- State clearly when evidence is insufficient.
+- Do not recommend starting, stopping, or changing medication.
+- Recommend professional assessment when appropriate.
+- Do not reveal internal reasoning.
+""",
+                ),
+                (
+                    "human",
+                    "Report text:\n{report_text}\n\n"
+                    "Approved medical references:\n{context}",
+                ),
+            ])
+
+            self.chain = prompt | llm
+
+        except ImportError:
+            self.chain = None
+
+    def _extract_report_text(self, pdf_path: str) -> str:
+        """Extract text from a PDF using pypdf."""
+        from pypdf import PdfReader
+
+        path = Path(pdf_path)
+
+        if not path.is_file():
+            raise FileNotFoundError(f"PDF file not found: {path}")
+
+        reader = PdfReader(str(path))
+
+        if not reader.pages:
+            raise ValueError("The PDF contains no pages.")
+
+        pages = []
+
+        for number, page in enumerate(reader.pages, start=1):
+            text = (page.extract_text() or "").strip()
+
+            if text:
+                pages.append(f"Page {number}:\n{text}")
+
+        report_text = "\n\n".join(pages).strip()
+
+        if not report_text:
+            raise ValueError(
+                "No readable text was extracted. This may be a scanned PDF "
+                "that requires OCR."
+            )
+
+        return report_text[:20000]
+
+    def explain_pdf(self, pdf_path: str) -> str:
+        try:
+            report_text = self._extract_report_text(pdf_path)
+
+            results = search_knowledge(report_text[:1500], k=4)
+
+            approved = [
+                item for item in results
+                if item.get("review_status") == "approved"
+                and item.get("content", "").strip()
+            ]
+
+            if not approved:
+                return (
+                    "I could read the report, but no relevant approved "
+                    "medical references were found. I cannot provide a "
+                    "reliable evidence-based interpretation yet. Please "
+                    "consult a qualified healthcare professional."
+                    + DISCLAIMER
+                )
+
+            if self.chain is None:
+                return (
+                    "The report was read, but the AI service is unavailable. "
+                    "Check GOOGLE_API_KEY and the "
+                    "langchain-google-genai installation."
+                    + DISCLAIMER
+                )
+
+            context = "\n\n---\n\n".join(
+                f"Title: {item.get('title', item.get('source', 'Unknown'))}\n"
+                f"Publisher: {item.get('publisher', 'Unknown')}\n"
+                f"Content: {item['content']}"
+                for item in approved
+            )
+
+            response = self.chain.invoke({
+                "report_text": report_text,
+                "context": context,
+            })
+
+            answer = response.content
+            if not isinstance(answer, str):
+                answer = str(answer)
+
+            answer = re.sub(
+                r"<think>.*?</think>",
+                "",
+                answer,
+                flags=re.DOTALL,
+            ).strip()
+
+            if not answer:
+                return "No usable explanation was generated." + DISCLAIMER
+
+            sources = []
+            seen = set()
+
+            for item in approved:
+                title = item.get("title") or item.get("source", "Unknown")
+                url = item.get("source_url", "")
+                key = (title, url)
+
+                if key not in seen:
+                    seen.add(key)
+                    sources.append(f"- {title}" + (f" ({url})" if url else ""))
+
+            answer += "\n\n### Approved References Used\n" + "\n".join(sources)
+            return answer + DISCLAIMER
+
+        except FileNotFoundError:
+            return "Error: The specified PDF file could not be found."
+        except ImportError as exc:
+            return (
+                f"Missing dependency: {exc}. Install pypdf using "
+                "`python -m pip install pypdf`."
+            )
+        except ValueError as exc:
+            return f"Unable to read the report: {exc}"
+        except Exception:
+            return (
+                "An error occurred while processing the report. "
+                "Check the PDF, dependencies, and application logs."
+                + DISCLAIMER
+            )

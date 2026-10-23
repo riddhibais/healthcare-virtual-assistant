@@ -1,0 +1,16 @@
+
+{
+  "documents": [
+    {
+      "file_name": "rag_test.txt",
+      "title": "RAG pipeline test document",
+      "publisher": "Local test fixture",
+      "source_url": "",
+      "version": "1",
+      "review_status": "pending",
+      "last_reviewed": "",
+      "reviewed_by": "",
+      "review_notes": "Software test fixture only. Not medical guidance."
+    }
+  ]
+}
