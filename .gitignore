@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and backups
+backups/
+backend/chroma_db/
+backend/medical_data/raw/
+
+# Local temporary files
+temp_report.pdf
+*.log
