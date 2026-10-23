@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Dictation Tool</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: transparent;
+            padding: 4px 0;
+        }
+
+        .voice-card {
+            background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+            border: 1.5px solid #38BDF8;
+            border-radius: 12px;
+            padding: 12px 18px;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .info-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0369A1;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .info-desc {
+            font-size: 12px;
+            color: #0C4A6E;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 8px rgba(2, 132, 199, 0.3);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 12px rgba(2, 132, 199, 0.4);
+            background: linear-gradient(135deg, #0369A1 0%, #075985 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="voice-card">
+        <div class="info-col">
+            <div class="info-title">
+                <span>🎙️</span> Live Browser Web Speech Dictation
+            </div>
+            <div class="info-desc">
+                Streams your speech in real time into words using your browser's native SpeechRecognition.
+            </div>
+        </div>
+        <button class="action-btn" onclick="openDictationPopup()">
+            <span>🎤</span> Start Live Dictation Window
+        </button>
+    </div>
+
+    <script>
+        function openDictationPopup() {
+            const popup = window.open('', 'LiveVoiceDictation', 'width=520,height=400,menubar=no,toolbar=no,location=no,status=no');
+            if (!popup) {
+                alert("Please allow popups for localhost to open the dictation window, or use the Native Audio Recorder right on this page!");
+                return;
+            }
+
+            const html = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>🎙️ Live Symptom Dictation (Web Speech API)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { padding: 22px; background: #F8FAFC; text-align: center; }
+        h3 { color: #0F172A; margin-bottom: 6px; font-size: 18px; }
+        p { color: #64748B; font-size: 13px; margin-bottom: 14px; }
+        .mic-btn {
+            width: 76px; height: 76px; border-radius: 50%; border: none;
+            background: #2563EB; color: white; font-size: 34px; cursor: pointer;
+            box-shadow: 0 6px 16px rgba(37,99,235,0.4); transition: all 0.2s; outline: none; margin-bottom: 12px;
+        }
+        .mic-btn.listening {
+            background: #DC2626; box-shadow: 0 6px 16px rgba(220,38,38,0.5);
+            animation: pulse 1.4s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+            100% { transform: scale(1); }
+        }
+        .transcript-box {
+            background: white; border: 1.5px solid #CBD5E1; border-radius: 10px;
+            padding: 12px; min-height: 80px; text-align: left; font-size: 14px;
+            color: #1E293B; margin-bottom: 16px; word-break: break-word; line-height: 1.5;
+        }
+        .done-btn {
+            background: #16A34A; color: white; border: none; border-radius: 8px;
+            padding: 10px 24px; font-size: 14px; font-weight: 700; cursor: pointer;
+            box-shadow: 0 4px 10px rgba(22,163,74,0.3); transition: all 0.2s;
+        }
+        .done-btn:hover { background: #15803D; }
+        .status-msg { font-size: 13px; color: #2563EB; font-weight: 600; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h3>🎙️ Live Web Speech Dictation</h3>
+    <p>Click the microphone and speak your symptoms clearly.</p>
+    <button id="mic" class="mic-btn" onclick="toggle()">🎤</button>
+    <div id="status" class="status-msg">Click mic to start listening</div>
+    <div id="transcript" class="transcript-box">Spoken words will appear here in real time...</div>
+    <button class="done-btn" onclick="done()">📋 Copy Text & Close</button>
+
+    <script>
+        let rec = null;
+        let active = false;
+        let finalStr = '';
+        const mic = document.getElementById('mic');
+        const status = document.getElementById('status');
+        const transcript = document.getElementById('transcript');
+
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+            status.textContent = "Web Speech API is not supported in this browser. Please use Google Chrome.";
+            mic.disabled = true;
+        } else {
+            rec = new SR();
+            rec.continuous = true;
+            rec.interimResults = true;
+            rec.lang = 'en-US';
+
+            rec.onstart = () => {
+                active = true;
+                mic.classList.add('listening');
+                status.textContent = "🔴 Listening... Speak your symptoms now";
+            };
+
+            rec.onresult = (e) => {
+                let interim = '';
+                let f = '';
+                for (let i = 0; i < e.results.length; ++i) {
+                    if (e.results[i].isFinal) f += e.results[i][0].transcript + ' ';
+                    else interim += e.results[i][0].transcript;
+                }
+                finalStr = (f + interim).trim();
+                transcript.textContent = finalStr || "Listening...";
+            };
+
+            rec.onerror = (e) => {
+                status.textContent = "Notice: " + e.error;
+                active = false;
+                mic.classList.remove('listening');
+            };
+
+            rec.onend = () => {
+                active = false;
+                mic.classList.remove('listening');
+                status.textContent = "Recording stopped. Click 'Copy Text & Close' to finish.";
+            };
+        }
+
+        function toggle() {
+            if (!rec) return;
+            if (active) {
+                rec.stop();
+            } else {
+                finalStr = '';
+                transcript.textContent = "Listening...";
+                rec.start();
+            }
+        }
+
+        function done() {
+            if (rec && active) rec.stop();
+            if (finalStr) {
+                navigator.clipboard.writeText(finalStr);
+            }
+            alert("Symptoms copied to clipboard! Paste directly into the symptom box on the page.");
+            window.close();
+        }
+    <\/script>
+</body>
+</html>
+            `;
+            popup.document.open();
+            popup.document.write(html);
+            popup.document.close();
+        }
+    </script>
+</body>
+</html>
