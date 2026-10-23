@@ -11,3 +11,4 @@ python-dotenv
 pymupdf
 pytesseract
 Pillow
+rapidocr-onnxruntime

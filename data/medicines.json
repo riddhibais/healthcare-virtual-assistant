@@ -1,0 +1,152 @@
+[
+  {
+    "name": "Paracetamol (Dolo 650, Crocin, Calpol)",
+    "generic_name": "Paracetamol / Acetaminophen",
+    "category": "Bukhar aur Dard ki Dawa (Pain & Fever)",
+    "primary_uses": "Bukhar (Fever), sir dard (Headache), body pain, daant dard aur jodo ke dard me aaram deta hai.",
+    "dosage_guidance": "Hamesha khana khane ke baad lein. Din me 4-6 ghante ke gap par le sakte hain. 24 ghante me 4 tablet (4000mg) se zyada bilkul na lein.",
+    "common_side_effects": "Yeh safe dawa hai. Bohot kam logon ko halki nausea (ulti jaisa lagna) ya skin par halki allergy ho sakti hai.",
+    "serious_risks_contraindications": "Zyada dose lene se Liver ko bada nuksan ho sakta hai. Agar pehle se liver ya kidney ki dikkat ho toh doctor se pooch kar lein.",
+    "interactions": "Is dawa ke sath Sharab (Alcohol) bilkul na piyein. Koi dusri cold/cough syrup lene se pehle check karein usme bhi paracetamol na ho."
+  },
+  {
+    "name": "Ibuprofen (Brufen, Combiflam component)",
+    "generic_name": "Ibuprofen",
+    "category": "Dard aur Sujan ki Dawa (NSAID - Pain & Swelling)",
+    "primary_uses": "Tez dard, daant ka dard, kamar dard, mahilaon ke period cramps, aur jodo me sujan kam karne ke liye.",
+    "dosage_guidance": "Khali pet KABHI NA LEIN! Hamesha khana ya doodh peene ke baad lein taaki pet me jalan na ho.",
+    "common_side_effects": "Pet me jalan, acidity, gas ya ulti jaisa lagna.",
+    "serious_risks_contraindications": "Pet me ulcer (chhale), bleeding ya kidney ki pareshani wale log bina doctor ke na lein. Pregnancy ke aakhri mahino me na lein.",
+    "interactions": "Aspirin ya blood thinner (khoon patla karne wali dawai) ke sath bina doctor ke na lein."
+  },
+  {
+    "name": "Pantoprazole (Pan 40, Pantocid)",
+    "generic_name": "Pantoprazole",
+    "category": "Gas aur Acidity ki Dawa (Antacid / PPI)",
+    "primary_uses": "Pet me tez gas, chhati me jalan (Heartburn), acidity, aur pet ke chhale (Ulcers) theek karne ke liye.",
+    "dosage_guidance": "Subah subah khali pet (breakfast se 30-45 minute pehle) ek glass paani ke sath lein.",
+    "common_side_effects": "Halka sir dard, pet kharab (diarrhea), ya gas.",
+    "serious_risks_contraindications": "Ise bina wajah mahino tak lagataar na lein, isse Vitamin B12 aur calcium ki kami ho sakti hai.",
+    "interactions": "Iron ya calcium supplements ke sath turant na lein (2 ghante ka gap rakhein)."
+  },
+  {
+    "name": "Domperidone (Domstal, Vomistop, Pan-D component)",
+    "generic_name": "Domperidone",
+    "category": "Ulti aur Matli ki Dawa (Anti-vomiting & Nausea)",
+    "primary_uses": "Ulti (Vomiting), ulti jaisa man hona (Nausea), pet bhara-bhara lagna, aur indigestion me kaam aati hai.",
+    "dosage_guidance": "Khana khane se 15-30 minute pehle lein taaki khana achhi tarah pache aur ulti na aaye.",
+    "common_side_effects": "Munh sookhna (Dry mouth), halka sir dard ya susti.",
+    "serious_risks_contraindications": "Dil ki bimari (Heart rhythm disorder) wale log bina doctor advice ke na lein.",
+    "interactions": "Antibiotics ya antifungal dawaiyon ke sath lene se pehle doctor se confirm karein."
+  },
+  {
+    "name": "Cetirizine (Cetzine, Alerid, Okacet)",
+    "generic_name": "Cetirizine Hydrochloride",
+    "category": "Allergy aur Nazla/Z जुकाम ki Dawa (Antiallergic)",
+    "primary_uses": "Chheenk aana (Sneezing), naak behna (Runny nose), aankhon me khujli/paani aana, aur skin allergy/hives me.",
+    "dosage_guidance": "Raat ko sone se pehle 1 tablet lena sabse behtar hota hai, kyunki isse thodi neend/susti aa sakti hai.",
+    "common_side_effects": "Neend aana (Drowsiness), munh sookhna, thakaan.",
+    "serious_risks_contraindications": "Ise lene ke baad car ya koi machine na chalayein. Kidney ke mareez doctor se pooch kar dose kam karein.",
+    "interactions": "Sharab (Alcohol) ke sath lene se bohot zyada neend aur susti aayegi, isliye avoid karein."
+  },
+  {
+    "name": "Montelukast with Levocetirizine (Montair LC, Telekast-L)",
+    "generic_name": "Montelukast + Levocetirizine",
+    "category": "Allergy aur Saans/Khansi ki Dawa",
+    "primary_uses": "Purani allergy, baar-baar aane wali chheenk, naak band hona, aur allergy wali khansi/asthma me aaram ke liye.",
+    "dosage_guidance": "Rozana raat ko sone ke waqt 1 tablet lein.",
+    "common_side_effects": "Halki susti, thakaan, munh sookhna, ya ajeeb sapne aana.",
+    "serious_risks_contraindications": "Agar ise lene ke baad mood me badlav, ghabrahat ya chidchidapan lage toh doctor ko turant batayein.",
+    "interactions": "Sharab ke sath bilkul na lein."
+  },
+  {
+    "name": "Azithromycin (Azee, Azithral)",
+    "generic_name": "Azithromycin",
+    "category": "Antibiotic (Gale aur Chest Infection ki Dawa)",
+    "primary_uses": "Gale ka dard/infection (Tonsils), sinus, fefdo ka infection (Bronchitis/Pneumonia), aur kaan ke infection me.",
+    "dosage_guidance": "Doctor ke bataye course ke mutabik (aam taur par din me 1 baar, 3 ya 5 din tak). Course hamesha poora karein, beech me na chhodein.",
+    "common_side_effects": "Pet me dard, loose motion (dast), ulti jaisa lagna.",
+    "serious_risks_contraindications": "Dil ke mareez ya liver bimari wale log doctor ko bataye bina na lein.",
+    "interactions": "Gas ki dawa (Antacids) ke sath turant na lein, kam se kam 2 ghante ka gap rakhein."
+  },
+  {
+    "name": "Amoxicillin (Augmentin component, Mox)",
+    "generic_name": "Amoxicillin",
+    "category": "Antibiotic (Bacterial Infection)",
+    "primary_uses": "Bacterial infection jaise gale, daant me infection, peshab (UTI), ya twacha (skin) ke infection theek karne me.",
+    "dosage_guidance": "Doctor ke bataye time par lein (har 8 ya 12 ghante me). Khana khane ke baad lein.",
+    "common_side_effects": "Dast (Loose motion), pet dard, twacha par halki lal khujli.",
+    "serious_risks_contraindications": "Jinhe Penicillin se allergy ho, woh bilkul na lein (anaphylaxis ka khatra).",
+    "interactions": "Bina doctor ke parchi ke na lein. Antibiotic ka course hamesha poora karein."
+  },
+  {
+    "name": "Metformin (Glycomet, Glucophage)",
+    "generic_name": "Metformin Hydrochloride",
+    "category": "Sugar / Diabetes ki Dawa",
+    "primary_uses": "Type-2 Diabetes me blood sugar control karne ke liye. PCOS me bhi use hoti hai.",
+    "dosage_guidance": "Hamesha khana khate waqt ya khane ke turant baad lein taaki pet me dard ya loose motion na ho.",
+    "common_side_effects": "Loose motions, pet me gas, munh me metallic (lohe jaisa) swad.",
+    "serious_risks_contraindications": "Kidney ki gambhir bimari me mana hai. Sharab ke sath lene se Lactic Acidosis (khatarnak condition) ho sakti hai.",
+    "interactions": "Heavy alcohol se bachein. Koi bhi contrast scan karwane se pehle doctor ko batayein."
+  },
+  {
+    "name": "Amlodipine (Amlong, Norvasc)",
+    "generic_name": "Amlodipine Besylate",
+    "category": "Blood Pressure (BP) ki Dawa",
+    "primary_uses": "High Blood Pressure kam karne ke liye aur seene ke dard (Angina) se bachne ke liye.",
+    "dosage_guidance": "Rozana ek hi nishchit samay par lein. Bina doctor se pooche achanak band na karein.",
+    "common_side_effects": "Pairo ya takhno (ankles) par halki sujan, chehre par garmi (flushing), chakkar aana.",
+    "serious_risks_contraindications": "Bohot low BP wale mareez na lein.",
+    "interactions": "Grapefruit (chakotra) ka juice na piyein, isse dawa ka asar achanak badh sakta hai."
+  },
+  {
+    "name": "Telmisartan (Telma, Micardis)",
+    "generic_name": "Telmisartan",
+    "category": "High BP aur Dil ki Dawa",
+    "primary_uses": "High Blood Pressure control karne aur heart attack/stroke ke risk ko kam karne ke liye.",
+    "dosage_guidance": "Din me ek baar, khana khane ke sath ya bina khaye lein. Regular BP monitor karein.",
+    "common_side_effects": "Chakkar aana, kamar dard, thakaan.",
+    "serious_risks_contraindications": "Pregnant (garbhwati) mahilaon ke liye sakhti se mana hai (bachhe ke liye khatarnak).",
+    "interactions": "Potassium supplements lene se pehle doctor se consult karein."
+  },
+  {
+    "name": "Atorvastatin (Atorva, Lipitor)",
+    "generic_name": "Atorvastatin",
+    "category": "Cholesterol kam karne ki Dawa",
+    "primary_uses": "Bad Cholesterol (LDL) aur triglycerides kam karne aur heart attack se bachane ke liye.",
+    "dosage_guidance": "Rozana raat ko khana khane ke baad ya sone se pehle lein.",
+    "common_side_effects": "Manspeshiyon (muscles) ya jodo me dard, pet kharab.",
+    "serious_risks_contraindications": "Agar achanak bina wajah manspeshiyon me bohot tez dard ho, toh turant doctor ko dikhayein.",
+    "interactions": "Sharab ka sevan kam karein. Swasth khan-paan aur exercise ke sath lein."
+  },
+  {
+    "name": "Oral Rehydration Salts (ORS / Electral)",
+    "generic_name": "WHO ORS Formula",
+    "category": "Paani aur Namak ki Kami ki Dawa (Electrolyte)",
+    "primary_uses": "Dast (Diarrhea), ulti (Vomiting), garmi me dehydration (sharir me paani ki kami) theek karne ke liye.",
+    "dosage_guidance": "Poora sachet nirdharit saaf peene ke paani (WHO packet ke liye 1 liter) me hi gholein. Din bhar ghut-ghut karke piyein. Alag se cheeni ya sharbat na milayein.",
+    "common_side_effects": "Bilkul safe hai agar sahi paani me milaya jaye.",
+    "serious_risks_contraindications": "Agar mareez behosh ho ya kuch bhi nigal na pa raha ho toh oral ORS na dein, hospital le jayein.",
+    "interactions": "Koi interaction nahi hai."
+  },
+  {
+    "name": "Salbutamol / Albuterol (Asthalin Inhaler)",
+    "generic_name": "Salbutamol",
+    "category": "Asthma / Saans phoolne ka Inhaler",
+    "primary_uses": "Achanak saans lene me takleef, asthma ka attack, ya seene me jakdan hone par foran aaram ke liye.",
+    "dosage_guidance": "1 se 2 puff saans khinchte waqt lein. Ise hamesha emergency ke liye paas rakhein.",
+    "common_side_effects": "Haathon me halki kapkapi (tremors), dil ki dhadkan tez hona, sir dard.",
+    "serious_risks_contraindications": "Agar baar-baar din me kai baar inhaler lena pad raha ho toh doctor ko dikhayein.",
+    "interactions": "High BP ki kuch dawaiyan asthma ko badha sakti hain, doctor ko inform karein."
+  },
+  {
+    "name": "Ondansetron (Emeset, Zofran)",
+    "generic_name": "Ondansetron",
+    "category": "Ulti Rokne ki Dawa (Anti-emetic)",
+    "primary_uses": "Ulti (Vomiting) aur kachha man hona turant rokne ke liye (jaise pet kharab ya food poisoning me).",
+    "dosage_guidance": "Khana khane se lagbhag 30 minute pehle lein ya doctor ki salah ke mutabik lein.",
+    "common_side_effects": "Kabz (constipation), halka sir dard, thakaan.",
+    "serious_risks_contraindications": "Dil ke mariz doctor se pooch kar hi lein.",
+    "interactions": "Doosri cardiac medicines ke sath lene se pehle doctor se check karwayein."
+  }
+]

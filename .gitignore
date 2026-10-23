@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 out.txt
+data/chroma_db/
+temp_report.*
+*.log
