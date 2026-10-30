@@ -377,7 +377,6 @@ with st.sidebar:
         "Navigation",
         display_options,
         index=current_index,
-        key="sidebar_nav_radio",
         label_visibility="collapsed"
     )
 
@@ -438,7 +437,6 @@ if st.session_state["nav_selection"] == "Home":
 
     def navigate_to(page_name):
         st.session_state["nav_selection"] = page_name
-        st.session_state["sidebar_nav_radio"] = f"{menu_icons[page_name]}  {page_name}"
 
     # Card 1: Report Explainer
     with col1:
@@ -506,7 +504,6 @@ elif st.session_state["nav_selection"] == "Report Explainer":
     with c_btn:
         if st.button("← Back to Home", key="back_home_report", use_container_width=True):
             st.session_state["nav_selection"] = "Home"
-            st.session_state["sidebar_nav_radio"] = "🏠  Home"
             st.rerun()
 
     report_engine = get_report_engine()
@@ -568,7 +565,6 @@ elif st.session_state["nav_selection"] == "Symptoms Checker":
     with c_btn:
         if st.button("← Back to Home", key="back_home_symptoms", use_container_width=True):
             st.session_state["nav_selection"] = "Home"
-            st.session_state["sidebar_nav_radio"] = "🏠  Home"
             st.rerun()
 
     symptom_engine = get_symptom_engine()
@@ -664,7 +660,6 @@ elif st.session_state["nav_selection"] == "Medicine Information":
     with c_btn:
         if st.button("← Back to Home", key="back_home_med", use_container_width=True):
             st.session_state["nav_selection"] = "Home"
-            st.session_state["sidebar_nav_radio"] = "🏠  Home"
             st.rerun()
 
     medicine_engine = get_medicine_engine()
