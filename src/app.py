@@ -40,9 +40,97 @@ html, body, p, h1, h2, h3, h4, h5, h6, span, button, input, textarea, label {
     font-family: 'Material Symbols Rounded', 'Material Icons' !important;
 }
 
-/* Background */
+/* Main App Background & Typography */
 [data-testid="stAppViewContainer"] {
     background-color: #F8FAFC !important;
+}
+
+[data-testid="stMainBlockContainer"],
+[data-testid="stMain"],
+[data-testid="stMain"] .stMarkdown,
+[data-testid="stMain"] p,
+[data-testid="stMain"] span,
+[data-testid="stMain"] li,
+[data-testid="stMain"] h1,
+[data-testid="stMain"] h2,
+[data-testid="stMain"] h3,
+[data-testid="stMain"] h4,
+[data-testid="stMain"] h5,
+[data-testid="stMain"] h6 {
+    color: #0F172A !important;
+}
+
+/* Chat Message Styling */
+[data-testid="stChatMessage"] {
+    background-color: #FFFFFF !important;
+    border: 1.5px solid #E2E8F0 !important;
+    border-radius: 16px !important;
+    padding: 16px 20px !important;
+    margin-bottom: 14px !important;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04) !important;
+}
+
+[data-testid="stChatMessage"] * {
+    color: #0F172A !important;
+}
+
+/* User Message Bubble */
+[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+    background: linear-gradient(135deg, #EFF6FF 0%, #E0EEFD 100%) !important;
+    border: 1.5px solid #BFDBFE !important;
+}
+
+/* Bottom Chat Input Bar */
+[data-testid="stBottom"] {
+    background: #F8FAFC !important;
+    border-top: 1px solid #E2E8F0 !important;
+    padding: 10px 0 16px 0 !important;
+}
+
+[data-testid="stChatInput"] {
+    background: transparent !important;
+}
+
+[data-testid="stChatInput"] > div {
+    background-color: #FFFFFF !important;
+    border: 1.5px solid #CBD5E1 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.06) !important;
+    padding: 2px 6px !important;
+    transition: all 0.2s ease !important;
+}
+
+[data-testid="stChatInput"] > div:focus-within {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+}
+
+[data-testid="stChatInput"] textarea {
+    background-color: transparent !important;
+    color: #0F172A !important;
+    font-size: 14.5px !important;
+}
+
+[data-testid="stChatInput"] textarea::placeholder {
+    color: #94A3B8 !important;
+}
+
+[data-testid="stChatInput"] button {
+    color: #2563EB !important;
+}
+
+/* Input Fields & Textareas */
+.stTextInput input, .stTextArea textarea {
+    background-color: #FFFFFF !important;
+    color: #0F172A !important;
+    border: 1.5px solid #CBD5E1 !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+}
+
+.stTextInput input:focus, .stTextArea textarea:focus {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
 }
 
 /* Header */
