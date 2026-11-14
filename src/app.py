@@ -23,8 +23,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Cached on-demand module initializers (prevents startup freezing and reloads)
-@st.cache_resource(show_spinner="Initializing Medical Report AI Engine...")
+# On-demand module initializers (instant startup, picks up updated keys immediately)
 def get_report_engine():
     return ReportExplainer()
 

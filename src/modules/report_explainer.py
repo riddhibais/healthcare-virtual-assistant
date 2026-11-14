@@ -10,16 +10,35 @@ from PIL import Image, ImageOps
 load_dotenv()
 
 def get_secret(key_name: str) -> str:
-    """Retrieve secret from environment (.env) or Streamlit Cloud Secrets (st.secrets)."""
-    val = os.getenv(key_name, "").strip()
-    if val:
-        return val
+    """
+    Robustly retrieve secret from environment (.env) or Streamlit Cloud Secrets (st.secrets).
+    Handles uppercase, lowercase, and nested section configurations.
+    """
+    # 1. Check os.environ
+    for k in (key_name, key_name.lower(), key_name.upper()):
+        val = os.getenv(k, "").strip()
+        if val:
+            return val
+
+    # 2. Check Streamlit Cloud st.secrets
     try:
         import streamlit as st
-        if hasattr(st, "secrets") and key_name in st.secrets:
-            return str(st.secrets[key_name]).strip()
-    except Exception:
-        pass
+        if hasattr(st, "secrets"):
+            for k in (key_name, key_name.lower(), key_name.upper()):
+                if k in st.secrets:
+                    val = str(st.secrets[k]).strip()
+                    if val:
+                        return val
+            for sec_key, sec_val in st.secrets.items():
+                if sec_key.lower() == key_name.lower() and isinstance(sec_val, str):
+                    return sec_val.strip()
+                if isinstance(sec_val, dict):
+                    for sub_k, sub_v in sec_val.items():
+                        if sub_k.lower() == key_name.lower() and isinstance(sub_v, str):
+                            return sub_v.strip()
+    except Exception as e:
+        print(f"Error accessing st.secrets for {key_name}: {e}")
+
     return ""
 
 class ReportExplainer:
@@ -27,7 +46,7 @@ class ReportExplainer:
         self.groq_api_key = get_secret("GROQ_API_KEY")
         self.google_api_key = get_secret("GOOGLE_API_KEY")
 
-        # Simple, real, concise prompt without hallucinations or long essays
+        # Strict prompt without hallucinations or long essays
         self.system_prompt = (
             "You are a helpful, friendly, and medically accurate virtual assistant. "
             "A patient has provided their medical laboratory test report (as text or image). "
@@ -92,8 +111,17 @@ class ReportExplainer:
                 "Please upload a clearer document or type your test parameters and numbers into the box below."
             )
 
+        groq_key = self.groq_api_key or get_secret("GROQ_API_KEY")
+        google_key = self.google_api_key or get_secret("GOOGLE_API_KEY")
+
+        if not groq_key and not google_key:
+            return (
+                "⚠️ **API Key Missing**: No GROQ_API_KEY or GOOGLE_API_KEY was found. "
+                "If running on Streamlit Cloud, please add GROQ_API_KEY in App Settings ➡️ Secrets."
+            )
+
         # 1. Try Groq (ultra-fast, quota-free, 0.8s response)
-        if self.groq_api_key:
+        if groq_key:
             models_to_try = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
             for model_name in models_to_try:
                 try:
@@ -110,7 +138,7 @@ class ReportExplainer:
                         "https://api.groq.com/openai/v1/chat/completions",
                         data=json.dumps(payload).encode("utf-8"),
                         headers={
-                            "Authorization": f"Bearer {self.groq_api_key}",
+                            "Authorization": f"Bearer {groq_key}",
                             "Content-Type": "application/json",
                             "User-Agent": "Mozilla/5.0"
                         }
@@ -126,9 +154,9 @@ class ReportExplainer:
                     continue
 
         # 2. Try Gemini REST fallback
-        if self.google_api_key:
+        if google_key:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={self.google_api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={google_key}"
                 payload = {
                     "contents": [{
                         "parts": [
@@ -171,8 +199,23 @@ class ReportExplainer:
         except Exception as img_err:
             return f"⚠️ Error processing image file: {str(img_err)}"
 
+        groq_key = self.groq_api_key or get_secret("GROQ_API_KEY")
+        google_key = self.google_api_key or get_secret("GOOGLE_API_KEY")
+
+        if not groq_key and not google_key:
+            return (
+                "⚠️ **API Key Missing on Streamlit Cloud**:\n\n"
+                "Neither `GROQ_API_KEY` nor `GOOGLE_API_KEY` was found in Secrets or environment.\n\n"
+                "**How to fix**:\n"
+                "1. Go to your Streamlit Cloud app dashboard.\n"
+                "2. Click **Settings** ➡️ **Secrets**.\n"
+                "3. Add: `GROQ_API_KEY = \"gsk_...\"` and click **Save**.\n"
+                "4. Re-upload or re-analyze your report."
+            )
+
+        groq_err_msg = ""
         # 1. Primary: Groq Multimodal Vision (Qwen 3.8 27B Vision - fast, high accuracy on tables)
-        if self.groq_api_key:
+        if groq_key:
             try:
                 payload = {
                     "model": "qwen/qwen3.8-27b",
@@ -206,7 +249,7 @@ class ReportExplainer:
                     "https://api.groq.com/openai/v1/chat/completions",
                     data=json.dumps(payload).encode("utf-8"),
                     headers={
-                        "Authorization": f"Bearer {self.groq_api_key}",
+                        "Authorization": f"Bearer {groq_key}",
                         "Content-Type": "application/json",
                         "User-Agent": "Mozilla/5.0"
                     }
@@ -218,12 +261,14 @@ class ReportExplainer:
                     if cleaned:
                         return cleaned
             except Exception as groq_err:
+                groq_err_msg = str(groq_err)
                 print(f"Groq Vision error: {groq_err}")
 
         # 2. Fallback: Google Gemini Multimodal Vision REST
-        if self.google_api_key:
+        gemini_err_msg = ""
+        if google_key:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={self.google_api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={google_key}"
                 payload = {
                     "contents": [{
                         "parts": [
@@ -255,6 +300,7 @@ class ReportExplainer:
                     if cleaned:
                         return cleaned
             except Exception as gemini_err:
+                gemini_err_msg = str(gemini_err)
                 print(f"Gemini Vision fallback error: {gemini_err}")
 
         # 3. Offline / Local Fallback: RapidOCR
@@ -265,17 +311,21 @@ class ReportExplainer:
             if ocr_res:
                 extracted_lines = [line[1] for line in ocr_res if line and len(line) > 1 and line[1].strip()]
                 extracted_text = "\n".join(extracted_lines)
-                # Verify that OCR found meaningful numbers and not just 1-2 words
                 if extracted_text and len(extracted_text.strip()) > 30 and re.search(r'\d+', extracted_text):
                     return self.explain_text(extracted_text)
         except Exception as ocr_err:
             print(f"RapidOCR extraction notice: {ocr_err}")
+
+        err_hint = ""
+        if groq_err_msg or gemini_err_msg:
+            err_hint = f"\n\n*(Diagnostics: {groq_err_msg or gemini_err_msg})*"
 
         return (
             "⚠️ **Could not read test numbers clearly from the photo**:\n\n"
             "- Please ensure the photo is well-lit, sharp, and focused on the test names and numbers.\n"
             "- If your report is on multiple pages, upload page-by-page or use a digital PDF.\n"
             "- Alternatively, you can copy/type your test numbers into the text box below!"
+            f"{err_hint}"
         )
 
     def explain_pdf(self, pdf_path: str) -> str:
