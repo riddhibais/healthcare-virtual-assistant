@@ -1,8 +1,11 @@
 import os
 import re
+import io
 import json
+import base64
 import urllib.request
 from dotenv import load_dotenv
+from PIL import Image, ImageOps
 
 load_dotenv()
 
@@ -11,13 +14,17 @@ class ReportExplainer:
         self.groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
         self.google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
 
-        # Simple, real, concise prompt without long essays
+        # Simple, real, concise prompt without hallucinations or long essays
         self.system_prompt = (
-            "You are a helpful, friendly medical virtual assistant. "
-            "A patient has provided their real medical laboratory report. "
-            "Explain ONLY what is actually written in their report in 100% SIMPLE, REAL, and CONCISE ENGLISH (NO Hindi, NO complex textbook jargon). "
-            "Do NOT write long essays or overly descriptive paragraphs. Keep it brief, clear, and easy to understand in 15-20 seconds.\n\n"
-            "Format your response strictly using this clean layout:\n\n"
+            "You are a helpful, friendly, and medically accurate virtual assistant. "
+            "A patient has provided their medical laboratory test report (as text or image). "
+            "CRITICAL INSTRUCTIONS:\n"
+            "1. Read and explain ONLY the EXACT medical parameters, values, and reference ranges that are visibly printed in their document.\n"
+            "2. DO NOT hallucinate, assume, invent, or simulate any test names, numbers, or results. If a test is not in the document, do NOT invent it.\n"
+            "3. If the document is blurry, illegible, or does NOT contain laboratory test results, clearly state: "
+            "'⚠️ The uploaded document does not appear to contain readable diagnostic lab results. Please upload a clear photo or digital PDF of your laboratory test paper.'\n"
+            "4. Explain in 100% SIMPLE, REAL, and CONCISE ENGLISH (NO Hindi, NO complex jargon). Keep it brief, clear, and easy to understand in 15-20 seconds.\n\n"
+            "When valid test results are present, format your response strictly using this clean layout:\n\n"
             "📋 **Report Summary**\n"
             "- [1-2 short sentences: what test this is and what the overall result shows in plain English]\n\n"
             "⚠️ **Key & Abnormal Findings**\n"
@@ -34,10 +41,43 @@ class ReportExplainer:
             "*⚠️ Disclaimer: Educational guidance only. Consult your doctor for formal diagnosis and treatment.*"
         )
 
+    def _optimize_and_encode_image(self, image_path: str) -> tuple[str, str]:
+        """
+        Preprocesses image: fixes EXIF orientation from phone cameras,
+        resizes if too large while maintaining high sharpness, and encodes to base64.
+        """
+        with Image.open(image_path) as img:
+            # Auto-orient smartphone photos based on EXIF
+            img = ImageOps.exif_transpose(img)
+
+            # Convert RGBA/P to standard RGB
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+
+            # Resize if dimensions exceed 1800px to ensure fast transmission and fit API limits
+            max_dim = 1800
+            if max(img.width, img.height) > max_dim:
+                scale = max_dim / max(img.width, img.height)
+                new_size = (int(img.width * scale), int(img.height * scale))
+                img = img.resize(new_size, Image.Resampling.LANCZOS)
+
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=92, optimize=True)
+            encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            return encoded, "image/jpeg"
+
     def explain_text(self, report_text: str) -> str:
-        """Explains text-extracted lab report using Groq multi-model failover."""
+        """Explains text-extracted lab report using Groq multi-model failover with Gemini fallback."""
         if not report_text or not report_text.strip():
             return "⚠️ No readable text found in the report. Please ensure the document is clear."
+
+        # Verify that the text contains at least some diagnostic numbers or keywords
+        has_digits = bool(re.search(r'\d+', report_text))
+        if not has_digits and len(report_text.strip()) < 30:
+            return (
+                "⚠️ **Insufficient Report Details**: The extracted text does not contain readable test numbers or values. "
+                "Please upload a clearer document or type your test parameters and numbers into the box below."
+            )
 
         # 1. Try Groq (ultra-fast, quota-free, 0.8s response)
         if self.groq_api_key:
@@ -51,7 +91,7 @@ class ReportExplainer:
                             {"role": "user", "content": f"Please explain ONLY this medical lab report concisely:\n\n{report_text}"}
                         ],
                         "temperature": 0.1,
-                        "max_tokens": 800
+                        "max_tokens": 900
                     }
                     req = urllib.request.Request(
                         "https://api.groq.com/openai/v1/chat/completions",
@@ -72,17 +112,28 @@ class ReportExplainer:
                     print(f"Groq report explanation error on {model_name}: {e}")
                     continue
 
-        # 2. Try Gemini fallback
+        # 2. Try Gemini REST fallback
         if self.google_api_key:
             try:
-                from google import genai
-                client = genai.Client(api_key=self.google_api_key)
-                response = client.models.generate_content(
-                    model="gemini-flash-latest",
-                    contents=f"{self.system_prompt}\n\nMedical Report Text:\n{report_text}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={self.google_api_key}"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"text": f"{self.system_prompt}\n\nMedical Report Text:\n{report_text}"}
+                        ]
+                    }]
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
                 )
-                clean_text = re.sub(r'<think>.*?</think>', '', response.text, flags=re.DOTALL).strip()
-                return clean_text
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    res = json.loads(response.read().decode("utf-8"))
+                    text = res["candidates"][0]["content"]["parts"][0]["text"]
+                    cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+                    if cleaned:
+                        return cleaned
             except Exception as e:
                 err_str = str(e)
                 if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
@@ -90,12 +141,132 @@ class ReportExplainer:
                         "⚠️ **Server Busy (Rate Limit Reached)**: The free-tier request quota is temporarily full. "
                         "Please wait a few moments and try again."
                     )
-                return f"⚠️ Error analyzing report: {err_str}"
+                print(f"Gemini text fallback error: {e}")
 
-        return "⚠️ No valid API key configured in `.env`."
+        return "⚠️ Unable to analyze report text at this time. Please check your internet connection or API settings."
+
+    def explain_image(self, image_path: str) -> str:
+        """
+        Directly reads and explains medical report images (JPG/PNG/JPEG) using Multimodal Vision.
+        Reads actual parameters from the image without hallucinating.
+        """
+        if not os.path.exists(image_path):
+            return "⚠️ Error: The specified image file could not be found."
+
+        try:
+            b64_data, mime_type = self._optimize_and_encode_image(image_path)
+        except Exception as img_err:
+            return f"⚠️ Error processing image file: {str(img_err)}"
+
+        # 1. Primary: Groq Multimodal Vision (Qwen 3.8 27B Vision - fast, high accuracy on tables)
+        if self.groq_api_key:
+            try:
+                payload = {
+                    "model": "qwen/qwen3.8-27b",
+                    "messages": [
+                        {"role": "system", "content": self.system_prompt},
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": (
+                                        "Please inspect this uploaded medical lab report image carefully. "
+                                        "Read the EXACT test parameters, patient observed values, and normal reference ranges printed on it. "
+                                        "Provide a clear, structured explanation based strictly on what is visibly printed. "
+                                        "Do not fabricate any values."
+                                    )
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:{mime_type};base64,{b64_data}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 1000
+                }
+                req = urllib.request.Request(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={
+                        "Authorization": f"Bearer {self.groq_api_key}",
+                        "Content-Type": "application/json",
+                        "User-Agent": "Mozilla/5.0"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=22) as response:
+                    res = json.loads(response.read().decode("utf-8"))
+                    text = res["choices"][0]["message"]["content"]
+                    cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+                    if cleaned:
+                        return cleaned
+            except Exception as groq_err:
+                print(f"Groq Vision error: {groq_err}")
+
+        # 2. Fallback: Google Gemini Multimodal Vision REST
+        if self.google_api_key:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={self.google_api_key}"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {
+                                "text": (
+                                    f"{self.system_prompt}\n\n"
+                                    "Please read and explain this medical lab report image carefully. "
+                                    "Extract only the real test results visibly printed in the image."
+                                )
+                            },
+                            {
+                                "inline_data": {
+                                    "mime_type": mime_type,
+                                    "data": b64_data
+                                }
+                            }
+                        ]
+                    }]
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=18) as response:
+                    res = json.loads(response.read().decode("utf-8"))
+                    text = res["candidates"][0]["content"]["parts"][0]["text"]
+                    cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+                    if cleaned:
+                        return cleaned
+            except Exception as gemini_err:
+                print(f"Gemini Vision fallback error: {gemini_err}")
+
+        # 3. Offline / Local Fallback: RapidOCR
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+            ocr_engine = RapidOCR()
+            ocr_res, _ = ocr_engine(image_path)
+            if ocr_res:
+                extracted_lines = [line[1] for line in ocr_res if line and len(line) > 1 and line[1].strip()]
+                extracted_text = "\n".join(extracted_lines)
+                # Verify that OCR found meaningful numbers and not just 1-2 words
+                if extracted_text and len(extracted_text.strip()) > 30 and re.search(r'\d+', extracted_text):
+                    return self.explain_text(extracted_text)
+        except Exception as ocr_err:
+            print(f"RapidOCR extraction notice: {ocr_err}")
+
+        return (
+            "⚠️ **Could not read test numbers clearly from the photo**:\n\n"
+            "- Please ensure the photo is well-lit, sharp, and focused on the test names and numbers.\n"
+            "- If your report is on multiple pages, upload page-by-page or use a digital PDF.\n"
+            "- Alternatively, you can copy/type your test numbers into the text box below!"
+        )
 
     def explain_pdf(self, pdf_path: str) -> str:
-        """Extracts text from PDF and generates structured explanation."""
+        """Extracts text from PDF or renders pages to vision for scanned PDFs."""
         try:
             import fitz  # PyMuPDF
             doc = fitz.open(pdf_path)
@@ -104,65 +275,28 @@ class ReportExplainer:
                 extracted_text += page.get_text() + "\n"
             doc.close()
 
-            if extracted_text and len(extracted_text.strip()) > 15:
+            # If digital text exists and contains numbers
+            if extracted_text and len(extracted_text.strip()) > 30 and re.search(r'\d+', extracted_text):
                 return self.explain_text(extracted_text)
 
-            # If no embedded text (scanned PDF), use RapidOCR on the first page
+            # If scanned PDF (no embedded text), render first page to high-res image and use Vision
             doc = fitz.open(pdf_path)
             if len(doc) > 0:
                 page = doc[0]
-                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0))
                 temp_img_path = pdf_path.replace(".pdf", "_page1.png")
                 pix.save(temp_img_path)
                 doc.close()
+
                 result = self.explain_image(temp_img_path)
                 if os.path.exists(temp_img_path):
-                    os.remove(temp_img_path)
+                    try:
+                        os.remove(temp_img_path)
+                    except Exception:
+                        pass
                 return result
+
             doc.close()
             return "⚠️ The uploaded PDF appears to be empty or unreadable."
         except Exception as e:
             return f"⚠️ Error processing PDF: {str(e)}"
-
-    def explain_image(self, image_path: str) -> str:
-        """Extracts text from medical report image (JPG/PNG) via local RapidOCR, then analyzes via Groq."""
-        # 1. First extract text locally using RapidOCR (100% offline, zero API quota, instant)
-        try:
-            from rapidocr_onnxruntime import RapidOCR
-            ocr_engine = RapidOCR()
-            ocr_res, _ = ocr_engine(image_path)
-            if ocr_res:
-                extracted_lines = [line[1] for line in ocr_res if line and len(line) > 1 and line[1].strip()]
-                extracted_text = "\n".join(extracted_lines)
-                if extracted_text and len(extracted_text.strip()) > 10:
-                    return self.explain_text(extracted_text)
-        except Exception as ocr_err:
-            print(f"RapidOCR extraction notice: {ocr_err}")
-
-        # 2. Fallback to Gemini Vision if available
-        if self.google_api_key:
-            try:
-                from PIL import Image
-                from google import genai
-
-                client = genai.Client(api_key=self.google_api_key)
-                img = Image.open(image_path)
-
-                response = client.models.generate_content(
-                    model="gemini-flash-latest",
-                    contents=[img, f"{self.system_prompt}\n\nPlease read and explain this medical lab report image."]
-                )
-                clean_text = re.sub(r'<think>.*?</think>', '', response.text, flags=re.DOTALL).strip()
-                return clean_text
-            except Exception as e:
-                err_str = str(e)
-                if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
-                    return (
-                        "⚠️ **Could not read text clearly from the photo**: "
-                        "Please ensure the image is bright and sharp, or paste your test names and numbers into the text box below!"
-                    )
-
-        return (
-            "⚠️ **Could not detect readable text in the image**: "
-            "Please upload a clearer, well-lit photo of your report, or type/paste your report numbers into the box below."
-        )

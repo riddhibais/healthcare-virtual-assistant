@@ -84,10 +84,7 @@ class MedicineInfo:
         return ""
 
     def _query_gemini(self, medicine_query: str) -> str:
-        """Fallback to Google Gemini if Groq is unavailable."""
-        from google import genai
-        client = genai.Client(api_key=self.google_api_key)
-        
+        """Fallback to Google Gemini REST API if Groq is unavailable."""
         system_instruction = (
             "You are an expert clinical pharmacist. "
             "Explain the medicine in 100% SIMPLE, CLEAR ENGLISH with clear headings:\n"
@@ -102,11 +99,24 @@ class MedicineInfo:
             "End with standard disclaimer."
         )
 
-        response = client.models.generate_content(
-            model="gemini-flash-latest",
-            contents=f"{system_instruction}\n\nMedicine Query: {medicine_query}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={self.google_api_key}"
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": f"{system_instruction}\n\nMedicine Query: {medicine_query}"}
+                ]
+            }]
+        }
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
         )
-        return response.text
+        with urllib.request.urlopen(req, timeout=12) as response:
+            res = json.loads(response.read().decode("utf-8"))
+            text = res["candidates"][0]["content"]["parts"][0]["text"]
+            cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+            return cleaned
 
     def get_info(self, medicine_query: str) -> str:
         if not medicine_query or not medicine_query.strip():

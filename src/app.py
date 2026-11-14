@@ -618,13 +618,23 @@ elif st.session_state["nav_selection"] == "Report Explainer":
         paste_submit = st.button("🔍 Analyze Entered Text", type="secondary")
 
     if uploaded_file is not None:
+        file_ext = os.path.splitext(uploaded_file.name)[1].lower()
+        
+        # Reset result if a new file is uploaded
+        if st.session_state.get("last_uploaded_report_name") != uploaded_file.name:
+            st.session_state["last_uploaded_report_name"] = uploaded_file.name
+            st.session_state["report_result"] = None
+
+        if file_ext in [".png", ".jpg", ".jpeg"]:
+            with st.expander("🖼️ Preview Uploaded Report Photo", expanded=False):
+                st.image(uploaded_file, caption=f"Uploaded: {uploaded_file.name}", use_container_width=True)
+
         if st.button("🔍 Analyze Uploaded Report", type="primary", use_container_width=True):
-            file_ext = os.path.splitext(uploaded_file.name)[1].lower()
             temp_path = os.path.join(f"temp_report{file_ext}")
             with open(temp_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            with st.spinner("Reading and analyzing your medical report..."):
+            with st.spinner("🔍 Reading text & numbers directly from your medical report..."):
                 if file_ext == ".pdf":
                     res = report_engine.explain_pdf(temp_path)
                 else:
@@ -633,7 +643,10 @@ elif st.session_state["nav_selection"] == "Report Explainer":
                 st.session_state["report_result"] = res
 
             if os.path.exists(temp_path):
-                os.remove(temp_path)
+                try:
+                    os.remove(temp_path)
+                except Exception:
+                    pass
 
     elif paste_submit and pasted_text.strip():
         with st.spinner("Analyzing your report values..."):

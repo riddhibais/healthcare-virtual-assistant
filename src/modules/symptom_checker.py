@@ -89,19 +89,29 @@ class SymptomChecker:
                     print(f"Groq chat error on {model_name}: {e}")
                     continue
 
-        # Fallback to Google Gemini
+        # Fallback to Google Gemini (Direct REST API, fast & reliable)
         if self.google_api_key:
             try:
-                from google import genai
-                client = genai.Client(api_key=self.google_api_key)
-                # Build context
                 last_user_query = conversation_history[-1]["content"] if conversation_history else "Help with symptoms"
-                full_prompt = f"{self.system_prompt}\n\nPatient Symptoms/Query: {last_user_query}"
-                response = client.models.generate_content(
-                    model="gemini-flash-latest",
-                    contents=full_prompt
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={self.google_api_key}"
+                payload = {
+                    "contents": [{
+                        "parts": [
+                            {"text": f"{self.system_prompt}\n\nPatient Symptoms/Query: {last_user_query}"}
+                        ]
+                    }]
+                }
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
                 )
-                return response.text
+                with urllib.request.urlopen(req, timeout=12) as response:
+                    res = json.loads(response.read().decode("utf-8"))
+                    text = res["candidates"][0]["content"]["parts"][0]["text"]
+                    cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+                    if cleaned:
+                        return cleaned
             except Exception as e:
                 err_str = str(e)
                 if "RESOURCE_EXHAUSTED" in err_str or "429" in err_str:
