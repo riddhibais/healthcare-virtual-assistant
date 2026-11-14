@@ -1,6 +1,16 @@
 import streamlit as st
 import os
 import io
+
+# Automatically bridge Streamlit Cloud Secrets to os.environ for all sub-modules
+try:
+    if hasattr(st, "secrets"):
+        for k, v in st.secrets.items():
+            if isinstance(v, str):
+                os.environ[k] = v
+except Exception:
+    pass
+
 from modules.report_explainer import ReportExplainer
 from modules.symptom_checker import SymptomChecker
 from modules.medicine_info import MedicineInfo

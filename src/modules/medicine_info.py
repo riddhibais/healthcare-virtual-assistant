@@ -6,10 +6,23 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def get_secret(key_name: str) -> str:
+    """Retrieve secret from environment (.env) or Streamlit Cloud Secrets (st.secrets)."""
+    val = os.getenv(key_name, "").strip()
+    if val:
+        return val
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and key_name in st.secrets:
+            return str(st.secrets[key_name]).strip()
+    except Exception:
+        pass
+    return ""
+
 class MedicineInfo:
     def __init__(self):
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
-        self.google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+        self.groq_api_key = get_secret("GROQ_API_KEY")
+        self.google_api_key = get_secret("GOOGLE_API_KEY")
 
     def _query_groq(self, medicine_query: str) -> str:
         """Ultra-fast (under 1 second) medical reasoning using Groq API with multi-model failover."""

@@ -9,10 +9,23 @@ from PIL import Image, ImageOps
 
 load_dotenv()
 
+def get_secret(key_name: str) -> str:
+    """Retrieve secret from environment (.env) or Streamlit Cloud Secrets (st.secrets)."""
+    val = os.getenv(key_name, "").strip()
+    if val:
+        return val
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets") and key_name in st.secrets:
+            return str(st.secrets[key_name]).strip()
+    except Exception:
+        pass
+    return ""
+
 class ReportExplainer:
     def __init__(self):
-        self.groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
-        self.google_api_key = os.getenv("GOOGLE_API_KEY", "").strip()
+        self.groq_api_key = get_secret("GROQ_API_KEY")
+        self.google_api_key = get_secret("GOOGLE_API_KEY")
 
         # Simple, real, concise prompt without hallucinations or long essays
         self.system_prompt = (
